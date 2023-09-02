@@ -19,23 +19,19 @@ openai.api_key = os.environ.get("OPENAI_API_KEY")
 # print(openai.Model.retrieve("gpt-3.5-turbo"))
 
 SYSTEM_PROMPT = """
-You are a helpful assistant that will be asked to parse HTML and provide structured output as specified.
+You are a helpful assistant that will be asked to parse HTML and provide information about each of the events in that HTML. Please retrieve information about each event such as the name, organizer, date, location, ticket price if applicable, a link to the event, and the event type (e.g. volunteer, community). In order to make parsing easier, provide your response as a JSON array of strings like so:
 
-I will provide you with an HTML file that contains information about events in San Francisco. Each event should have an id or link representing it (could be an href) tag, and some other info. Each event should also have a date. Dates may be relative in the HTML, so for context today's date is (#TODO Add date) Please try not to hallucinate. Your responses should look like this:
 ```
 {
-    "events": [
-        {
-            "link": "/sample_link",
-            "other_info": "other relevant info such as Foo Bar Dinner, organized by Baz and FooBar, at location Y, tickets cost $x, the event has a waitlist, and more"
-        }
+    response: [
+        "Hayes Valley Cleanup, a community cleanup event occuring on Saturday 9/2, and organized by RefuseRefuseSF. Link: https://www.mobilize.us/togethersf/event/413069/",
         ...
     ]
 }
-```
-You should only return valid JSON, that is your whole response should just be valid JSON. Let's begin!
-"""
 
+You should provide enough data about the event so that somebody could decide whether to go just based on reading your summary.
+```
+"""
 
 def parseHtmlWithGpt(htmlSource: str):
     response = openai.ChatCompletion.create(
@@ -55,4 +51,6 @@ def parseHtmlWithGpt(htmlSource: str):
     end_index = ai_response.rfind("}") + 1  # +1 to include the closing brace
     json_string = ai_response[start_index:end_index]
 
-    return json.loads(json_string)
+    json_resp = json.loads(json_string)
+
+    return json_resp['response']

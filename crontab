@@ -1,2 +1,0 @@
-*/3 * * * * /usr/bin/pkill "Touch Bar agent" &>/dev/null; /usr/bin/killall 
-"ControlStrip" &>/dev/null;

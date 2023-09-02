@@ -1,5 +1,5 @@
 import requests
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, NavigableString
 from enum import Enum
 from llm_layer import parseHtmlWithGpt
 
@@ -16,6 +16,28 @@ urls = {
     SOURCE.SFFunCheap: "https://sf.funcheap.com/events/san-francisco/",
 }
 
+def remove_empty_divs(tag):
+    if tag.name == 'div':
+        children = tag.find_all(recursive=False)
+        if not children:
+            tag.extract()
+            return
+        for child in children:
+            remove_empty_divs(child)
+        children = tag.find_all(recursive=False)
+        if not children:
+            tag.extract()
+    else:
+        for child in tag.find_all(recursive=False):
+            remove_empty_divs(child)
+
+def compress_divs(tag):
+    divs = tag.find_all('div')
+
+    for div in divs:
+        # check if the only child of the div is another div
+        if len(div.contents) == 1:
+            div.replace_with(div.contents[0])
 
 def getPage(source: SOURCE) -> str:
     url = urls[source]
@@ -25,23 +47,28 @@ def getPage(source: SOURCE) -> str:
 
         soup = BeautifulSoup(response.content, "html.parser")
 
-        section = soup.find("div", class_="timeline")
-
+        body = soup.find('body')
+        section = body.find('div')
+        
         for tag in section.find_all(True):  # find_all(True) matches all tags
             del tag["id"]
             del tag["class"]
             del tag["style"]
-
-        for script in section(["script", "style", "head", "img", "svg"]):
+        
+        for script in section(["script", "style", "head", "img", "svg", "footer"]):
             script.extract()
 
-        return section
+        remove_empty_divs(section)
+        compress_divs(section)
+
+        return section.prettify()
     else:
         raise Exception("unimplemented")
 
 
 if __name__ == "__main__":
     page_html = getPage(SOURCE.LuMa)
-    gpt_response_obj = parseHtmlWithGpt(str(page_html))
+    print(page_html)
+    gpt_response_obj = parseHtmlWithGpt(page_html)
     # TODO: Add the source to the JSON
     print(gpt_response_obj)
