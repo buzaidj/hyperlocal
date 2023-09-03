@@ -35,7 +35,6 @@ def compress_divs(tag):
     divs = tag.find_all('div')
 
     for div in divs:
-        # check if the only child of the div is another div
         if len(div.contents) == 1:
             div.replace_with(div.contents[0])
 
